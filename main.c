@@ -1,6 +1,13 @@
 #include <stdio.h>
 #define DSH_RL_BUFSIZE 1024
+#define DSH_TOK_BUFSIZE 64
+#define DSH_TOK_DELIM " \t\r\n\a"
 
+
+
+void dsh_loop(void);
+void *dsh_read_line(void);
+char **dsh_split_line(char *line)
 void dsh_loop(void){
    char *line;
    char **args;
@@ -62,6 +69,34 @@ if (getline(&line, &bufsize, stdin) == -1){ //ssize_t getline(char **lineptr, si
 
 }
 return line;
+}
+
+char **dsh_split_line(char *line){
+   int bufsize = DSH_TOK_BUFSIZE, position = 0;
+   char **tokens = malloc(bufsize * sizeof(char*));
+   char *token;
+   if(!tokens){
+    fprintf(stderr, "dsh: allocation error\n");
+    exit(EXIT_FAILURE);
+   }
+   token = strtok(line, DSH_TOK_DELIM); //first call = strtok find the first token, replaces the delimiter after it with a null character (\0) and returns a pointer to the start of the token
+   while (token != NULL){
+     tokens[position] = token;
+     position++;
+     if (position >= bufsize){
+       bufsize += DSH_TOK_BUFSIZE;
+       tokens = realloc(tokens, bufsize * sizeof(char*));
+       if (!tokens) {
+       fprintf(stderr, "dsh: allocation error\n");
+       exit(EXIT_FAILURE);
+       }
+     }
+     token = strtok(NULL, DSH_TOK_DELIM);
+   }
+   tokens[position] = NULL;
+   return tokens;
+
+
 }
 
 int main(int argc, char **argv){
