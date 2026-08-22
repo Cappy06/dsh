@@ -1,4 +1,8 @@
 #include <stdio.h>
+#include <string.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#include <stdlib.h>
 #define DSH_RL_BUFSIZE 1024
 #define DSH_TOK_BUFSIZE 64
 #define DSH_TOK_DELIM " \t\r\n\a"
@@ -6,8 +10,31 @@
 
 
 void dsh_loop(void);
-void *dsh_read_line(void);
-char **dsh_split_line(char *line)
+char *dsh_read_line(void);
+char **dsh_split_line(char *line);
+int dsh_execute(char **args);
+
+int dsh_lines(char **args);
+
+/*Function Declations for builtin shell commands:*/
+int dsh_cd(char **args);
+int dsh_help(char **args);
+int dsh_exit(char **args);
+
+/*List of built in commands, followed by thier corresponding functions.*/
+char *builtin_str[] = {
+    "cd",
+    "help",
+    "exit"
+};
+
+int (*builtin_func[]) (char **) = {
+      &dsh_cd,
+      &dsh_help,
+      &dsh_exit
+};
+
+
 void dsh_loop(void){
    char *line;
    char **args;
@@ -15,7 +42,7 @@ void dsh_loop(void){
    do {
      printf("> ");
      line = dsh_read_line(); //read the command from standard input
-     args = dsh_read_args(line); //seperate the command string into a program and arguements
+     args = dsh_split_line(line); //seperate the command string into a program and arguements
      status = dsh_execute(args); //run the parsed command
 
      free(line);
@@ -113,11 +140,11 @@ int dsh_launch(char **args){
      // Error forking
      perror("lsh");
    } else {
-     /*// Parent process
+     // Parent process
      do {
        wpid = waitpid(pid, &status, WUNTRACED); //tells waitpd to return not only when the child terminates, but also if the child is stopped. (for e.g if the user presses ctrl+z button)
-     } while(!WIFEXITED(status) && !WIFSIGNALED(status)); WIFEXITED(status) = returns true(1) if the child terminates normally (e.g reached the end of its code or calld exit()). WIFSIGNALED(status) = returns true( 1 ) if the child was terminated forcefull by an unhandled singal (e.g a segmentation fauly, or being killed)*/
-	while(1){
+     } while(!WIFEXITED(status) && !WIFSIGNALED(status)); /*WIFEXITED(status) = returns true(1) if the child terminates normally (e.g reached the end of its code or calld exit()). WIFSIGNALED(status) = returns true( 1 ) if the child was terminated forcefull by an unhandled singal (e.g a segmentation fauly, or being killed)*/
+	/*while(1){
           wpid = waitpid(pid, &status, WUNTRACED);
 	  //Handle system call errors first
 	  if (wpid == -1) {
@@ -137,12 +164,58 @@ int dsh_launch(char **args){
 		  break; //child was suspended (e.g Ctrl+z)
 			}
 
-	}
+	}*/
    }
    return 1;
 
 
 }
+int dsh_num_builtins() {
+  return sizeof(builtin_str) / sizeof(char *);
+}
+/* Builtin function implementations. */
+int dsh_cd(char **args){
+   if (args[1] == NULL){
+     fprintf(stderr, "dsh: expected arguement to \"cd\"\n");
+   } else {
+      if(chdir(args[1]) != 0){
+            perror("dsh");
+      }
+   }
+   return 1;
+}
+
+int dsh_help(char **args){
+  
+	int i;
+	printf("Shivam Pandya's DSH\n");
+	printf("Type program names and arguements, and hit enter. \n");
+	printf("The following are built in:\n");
+
+	for(i = 0; i<dsh_num_builtins(); i++){
+            printf("  %s\n", builtin_str[i]);
+	}
+
+	printf("Use the man command for information on other programs.\n");
+	return 1;
+}
+
+int dsh_exit(char **args) {
+
+   return 0;
+}
+
+int dsh_execute(char **args){
+   int i;
+   if(args[0] == NULL) return 1;
+   for(i = 0; i<dsh_num_builtins(); ++i){
+      if (strcmp(args[0], builtin_str[i]) == 0) {
+         return (*builtin_func[i])(args);
+      }
+   }
+   return dsh_launch(args);
+}
+
 
 int main(int argc, char **argv){
 // Load config files, if any
@@ -150,6 +223,6 @@ int main(int argc, char **argv){
 	// Run command loop
 	dsh_loop();
        //Perform and shutdown/cleanup
-	return EXIT_SUCESS;
+	return EXIT_SUCCESS;
 }
 
