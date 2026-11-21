@@ -133,7 +133,7 @@ int dsh_launch(char **args){
    pid = fork();
    if (pid == 0){
 	   //Child process
-	   if (execvp(args[0], args) == -1) //expectsa program name an array (also called a vector, hence the 'v') of string arguements (the first one has to be the programm name. The 'p' mean that instead of providing the full file path of the programm to run , we are going to give its name, and let the operating system search for the program in the path
+	   if (execvp(args[0], args) == -1) //expects program name an array (also called a vector, hence the 'v') of string arguements (the first one has to be the programm name. The 'p' mean that instead of providing the full file path of the programm to run , we are going to give its name, and let the operating system search for the program in the path
 		   perror("dsh");
 	   exit(EXIT_FAILURE);
    } else if (pid < 0) {
@@ -143,7 +143,7 @@ int dsh_launch(char **args){
      // Parent process
      do {
        wpid = waitpid(pid, &status, WUNTRACED); //tells waitpd to return not only when the child terminates, but also if the child is stopped. (for e.g if the user presses ctrl+z button)
-     } while(!WIFEXITED(status) && !WIFSIGNALED(status)); /*WIFEXITED(status) = returns true(1) if the child terminates normally (e.g reached the end of its code or calld exit()). WIFSIGNALED(status) = returns true( 1 ) if the child was terminated forcefull by an unhandled singal (e.g a segmentation fauly, or being killed)*/
+     } while(!WIFEXITED(status) && !WIFSIGNALED(status)); /*WIFEXITED(status) = returns true(1) if the child terminates normally (e.g reached the end of its code or calld exit()). WIFSIGNALED(status) = returns true( 1 ) if the child was terminated forcefull by an unhandled singal (e.g a segmentation fault, or being killed)*/
 	/*while(1){
           wpid = waitpid(pid, &status, WUNTRACED);
 	  //Handle system call errors first
